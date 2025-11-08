@@ -31,9 +31,8 @@ function deriveUrl(network: HyperliquidNetwork): string {
 }
 
 export function useHyperliquidWs({
-  network = (process.env.NEXT_PUBLIC_HL_NETWORK as HyperliquidNetwork) ||
-    "mainnet",
-  urlOverride = process.env.NEXT_PUBLIC_HL_WS_URL,
+  network = "mainnet",
+  urlOverride,
   subscriptions,
   onMessage,
   onOpen,
