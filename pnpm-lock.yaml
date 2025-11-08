@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      klinecharts:
+        specifier: ^9
+        version: 9.8.12
       mqtt:
         specifier: ^5.10.3
         version: 5.14.1
@@ -332,6 +335,10 @@ packages:
 
   js-tokens@4.0.0:
     resolution: {integrity: sha512-RdJUflcE3cUzKiMqQgsCu06FPu9UdIJO0beYbPhHN4k6apgJtifcoCtT9bcxOpYBtpD2kCM6Sbzg4CausW/PKQ==}
+
+  klinecharts@9.8.12:
+    resolution: {integrity: sha512-yKLWMliwwIsiQsAI8geNOkE8P6SFsvaa0leX2isgB4Y1SvM3tS6Y9pe7ZbKkiLtOE0P0W9W9wb0M2wH0xAPG7w==}
+    engines: {node: '>=0.10.0'}
 
   loose-envify@1.4.0:
     resolution: {integrity: sha512-lyuxPGr/Wfhrlem2CL/UcnUc1zcqKAImBDzukY7Y5F/yQiNdko6+fRLevlw1HgMySw7f611UIY408EtxRSoK3Q==}
@@ -733,6 +740,8 @@ snapshots:
   js-sdsl@4.3.0: {}
 
   js-tokens@4.0.0: {}
+
+  klinecharts@9.8.12: {}
 
   loose-envify@1.4.0:
     dependencies:

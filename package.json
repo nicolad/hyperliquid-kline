@@ -6,6 +6,7 @@
     "start": "next start"
   },
   "dependencies": {
+    "klinecharts": "^9",
     "mqtt": "^5.10.3",
     "next": "latest",
     "react": "^18.3.1",
