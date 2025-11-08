@@ -7,10 +7,10 @@
   },
   "dependencies": {
     "klinecharts": "^9",
-    "mqtt": "^5.10.3",
     "next": "latest",
     "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "react-dom": "^18.3.1",
+    "react-use-websocket": "^4.13.0"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",

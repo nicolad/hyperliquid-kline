@@ -1,195 +1,18 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import useHyperliquidWs from "@/lib/hyperliquidWs";
 import KLineChartComponent from "@/lib/KLineChartComponent";
-import {
-  convertHyperliquidCandlesToKLine,
-  updateCandleWithTrade,
-} from "@/lib/dataConverter";
-import { fetchHyperliquidCandles } from "@/lib/fetchCandles";
-import type { KLineData } from "klinecharts";
-
-interface CoinData {
-  symbol: string;
-  candleData: KLineData[];
-  currentCandle: KLineData | null;
-}
+import { useHyperliquidData } from "@/lib/useHyperliquidData";
 
 const TOP_COINS = ["BTC", "ETH", "SOL", "AVAX"];
 
 export default function MultiChartGrid() {
   const [selectedInterval, setSelectedInterval] = useState("1m");
-  const [coinsData, setCoinsData] = useState<{ [key: string]: CoinData }>(
-    TOP_COINS.reduce((acc, coin) => {
-      acc[coin] = { symbol: coin, candleData: [], currentCandle: null };
-      return acc;
-    }, {} as { [key: string]: CoinData })
-  );
 
-  useEffect(() => {
-    const fetchInitialData = async () => {
-      const endTime = Date.now();
-      const startTime = endTime - 24 * 60 * 60 * 1000;
-
-      for (const coin of TOP_COINS) {
-        try {
-          const candles = await fetchHyperliquidCandles(
-            coin,
-            selectedInterval,
-            startTime,
-            endTime
-          );
-
-          if (candles.length > 0) {
-            const convertedCandles = convertHyperliquidCandlesToKLine(candles);
-            setCoinsData((prev) => ({
-              ...prev,
-              [coin]: {
-                ...prev[coin],
-                candleData: convertedCandles,
-                currentCandle:
-                  convertedCandles.length > 0
-                    ? convertedCandles[convertedCandles.length - 1]
-                    : null,
-              },
-            }));
-          }
-        } catch (error) {}
-      }
-    };
-
-    fetchInitialData();
-  }, [selectedInterval]);
-
-  const { isConnected } = useHyperliquidWs({
-    subscriptions: TOP_COINS.flatMap((coin) => [
-      {
-        type: "candle",
-        coin: coin,
-        interval: selectedInterval,
-      },
-      {
-        type: "trades",
-        coin: coin,
-      },
-    ]),
-    onMessage: (envelope) => {
-      if (envelope.channel === "subscriptionResponse") {
-        return;
-      }
-
-      let coin: string | undefined;
-
-      if (envelope.channel === "candle" && envelope.data) {
-        coin = envelope.data.s;
-      } else if (
-        envelope.channel === "trades" &&
-        Array.isArray(envelope.data) &&
-        envelope.data.length > 0
-      ) {
-        coin = envelope.data[0]?.coin;
-      }
-
-      if (!coin || !TOP_COINS.includes(coin)) {
-        return;
-      }
-
-      if (envelope.channel === "candle") {
-        const candleData = envelope.data;
-
-        let candles = [];
-        if (Array.isArray(candleData)) {
-          candles = candleData;
-        } else if (candleData.candles && Array.isArray(candleData.candles)) {
-          candles = candleData.candles;
-        } else if (candleData.t) {
-          candles = [candleData];
-        }
-
-        if (candles.length > 0) {
-          const convertedCandles = convertHyperliquidCandlesToKLine(candles);
-
-          setCoinsData((prev) => {
-            const existingData = prev[coin]?.candleData || [];
-            const newCandle = convertedCandles[0];
-
-            if (existingData.length > 0) {
-              const lastCandle = existingData[existingData.length - 1];
-
-              if (lastCandle.timestamp === newCandle.timestamp) {
-                const updatedData = [...existingData];
-                updatedData[updatedData.length - 1] = newCandle;
-
-                return {
-                  ...prev,
-                  [coin]: {
-                    ...prev[coin],
-                    candleData: updatedData,
-                    currentCandle: newCandle,
-                  },
-                };
-              } else {
-                const updatedData = [...existingData, newCandle];
-
-                return {
-                  ...prev,
-                  [coin]: {
-                    ...prev[coin],
-                    candleData: updatedData,
-                    currentCandle: newCandle,
-                  },
-                };
-              }
-            } else {
-              return {
-                ...prev,
-                [coin]: {
-                  ...prev[coin],
-                  candleData: convertedCandles,
-                  currentCandle: newCandle,
-                },
-              };
-            }
-          });
-        }
-      }
-
-      if (envelope.channel === "trades") {
-        const trades = envelope.data;
-        if (Array.isArray(trades)) {
-          setCoinsData((prev) => {
-            const currentCandle = prev[coin]?.currentCandle;
-            if (!currentCandle) return prev;
-
-            let updatedCandle = currentCandle;
-            trades.forEach((trade: any) => {
-              const price = parseFloat(trade.px);
-              const volume = parseFloat(trade.sz);
-              updatedCandle = updateCandleWithTrade(
-                updatedCandle,
-                price,
-                volume
-              );
-            });
-
-            const newCandleData = [...prev[coin].candleData];
-            if (newCandleData.length > 0) {
-              newCandleData[newCandleData.length - 1] = updatedCandle;
-            }
-
-            return {
-              ...prev,
-              [coin]: {
-                ...prev[coin],
-                candleData: newCandleData,
-                currentCandle: updatedCandle,
-              },
-            };
-          });
-        }
-      }
-    },
+  // Call hook unconditionally - NEVER wrap hooks in try-catch
+  const { coinsData, isConnected, readyState } = useHyperliquidData({
+    coins: TOP_COINS,
+    interval: selectedInterval,
   });
 
   return (
@@ -247,21 +70,8 @@ export default function MultiChartGrid() {
               <option value="1d">1d</option>
             </select>
           </div>
-
-          <div style={{ whiteSpace: "nowrap" }}>
-            Status:{" "}
-            <strong
-              style={{
-                color: isConnected ? "green" : "orange",
-                whiteSpace: "nowrap",
-              }}
-            >
-              {isConnected ? "Connected" : "Connecting..."}
-            </strong>
-          </div>
         </div>
       </div>
-
       <div
         style={{
           display: "grid",
@@ -296,21 +106,26 @@ export default function MultiChartGrid() {
                 fontWeight: "bold",
                 fontSize: "1rem",
                 flexShrink: 0,
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
               }}
             >
-              {coin}
-              {coinsData[coin]?.currentCandle && (
-                <span
-                  style={{
-                    marginLeft: "1rem",
-                    fontSize: "0.85rem",
-                    fontWeight: "normal",
-                    color: "#666",
-                  }}
-                >
-                  ${coinsData[coin].currentCandle?.close.toFixed(2)}
-                </span>
-              )}
+              <div>
+                {coin}
+                {coinsData[coin]?.currentCandle && (
+                  <span
+                    style={{
+                      marginLeft: "1rem",
+                      fontSize: "0.85rem",
+                      fontWeight: "normal",
+                      color: "#666",
+                    }}
+                  >
+                    ${coinsData[coin].currentCandle?.close.toFixed(2)}
+                  </span>
+                )}
+              </div>
             </div>
             <div style={{ flex: 1, minHeight: 0, minWidth: 0 }}>
               <KLineChartComponent

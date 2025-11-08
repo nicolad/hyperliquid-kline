@@ -21,7 +21,8 @@ export async function fetchHyperliquidCandles(
   startTime?: number,
   endTime?: number
 ): Promise<[number, string, string, string, string, string][]> {
-  const url = "https://api.hyperliquid.xyz/info";
+  // Use Next.js API route to avoid CORS issues
+  const url = "/api/hyperliquid";
 
   const body = {
     type: "candleSnapshot",
@@ -43,10 +44,26 @@ export async function fetchHyperliquidCandles(
     });
 
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+      const errorData = await response
+        .json()
+        .catch(() => ({ error: "Unknown error" }));
+      console.error(
+        `❌ [FETCH] HTTP error for ${coin}! Status: ${response.status} ${response.statusText}`
+      );
+      console.error(`❌ [FETCH] Error details:`, errorData);
+      throw new Error(
+        `HTTP error! status: ${response.status}, details: ${JSON.stringify(
+          errorData
+        )}`
+      );
     }
 
     const data: HyperliquidCandle[] = await response.json();
+
+    if (!Array.isArray(data)) {
+      console.error(`❌ [FETCH] Invalid response format for ${coin}:`, data);
+      return [];
+    }
 
     // Convert to the format expected by the converter: [timestamp, open, high, low, close, volume]
     return (data || []).map((candle) => [
@@ -58,7 +75,14 @@ export async function fetchHyperliquidCandles(
       candle.v,
     ]);
   } catch (error) {
-    console.error(`Error fetching candles for ${coin}:`, error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error(
+      `❌ [FETCH] Error fetching candles for ${coin}:`,
+      errorMessage
+    );
+    if (error instanceof Error && error.stack) {
+      console.error(`❌ [FETCH] Stack trace:`, error.stack);
+    }
     return [];
   }
 }

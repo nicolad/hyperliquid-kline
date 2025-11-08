@@ -1,12 +1,46 @@
 import type { KLineData } from "klinecharts";
 
 /**
+ * WebSocket candle format (object)
+ */
+interface HyperliquidCandleObject {
+  t: number; // timestamp (ms)
+  T: number; // close timestamp
+  s: string; // symbol
+  i: string; // interval
+  o: string; // open
+  c: string; // close
+  h: string; // high
+  l: string; // low
+  v: string; // volume
+  n: number; // number of trades
+}
+
+/**
+ * HTTP API candle format (array)
+ */
+type HyperliquidCandleArray = [number, string, string, string, string, string];
+
+/**
  * Converts Hyperliquid candle data to KLineChart format
- * Hyperliquid candle format: [timestamp, open, high, low, close, volume]
+ * Supports both array format (HTTP API) and object format (WebSocket)
  */
 export function convertHyperliquidToKLine(
-  hlCandle: [number, string, string, string, string, string]
+  hlCandle: HyperliquidCandleArray | HyperliquidCandleObject
 ): KLineData {
+  // Check if it's an object (WebSocket format)
+  if (!Array.isArray(hlCandle) && typeof hlCandle === "object") {
+    return {
+      timestamp: hlCandle.t,
+      open: parseFloat(hlCandle.o),
+      high: parseFloat(hlCandle.h),
+      low: parseFloat(hlCandle.l),
+      close: parseFloat(hlCandle.c),
+      volume: parseFloat(hlCandle.v),
+    };
+  }
+
+  // Array format (HTTP API)
   const [timestamp, open, high, low, close, volume] = hlCandle;
 
   return {
@@ -21,9 +55,10 @@ export function convertHyperliquidToKLine(
 
 /**
  * Converts an array of Hyperliquid candles to KLineChart format
+ * Supports both array format (HTTP API) and object format (WebSocket)
  */
 export function convertHyperliquidCandlesToKLine(
-  hlCandles: [number, string, string, string, string, string][]
+  hlCandles: (HyperliquidCandleArray | HyperliquidCandleObject)[]
 ): KLineData[] {
   return hlCandles.map(convertHyperliquidToKLine);
 }
